@@ -1,0 +1,18 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Custom Theme */
+body {
+  @apply bg-gray-50 text-gray-900;
+}
+
+/* Input Styling */
+.input-field {
+  @apply w-full px-4 py-3 rounded-lg border border-gray-300 bg-gray-100 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition;
+}
+
+/* Button */
+.primary-btn {
+  @apply w-full bg-blue-600 text-white py-3 rounded-lg font-medium hover:bg-blue-700 transition;
+}
