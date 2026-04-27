@@ -166,11 +166,6 @@ export default function TRCFMTable({ onNext }) {
 
                 </table>
             </div>
-
-
-
-
-
             <div className="flex justify-end mt-6">
                 <button
                     onClick={onNext}

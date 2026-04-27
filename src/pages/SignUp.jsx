@@ -8,6 +8,7 @@ export default function Signup() {
         username: "",
         name: "",
         email: "",
+        role: "",
         password: "",
         confirmPassword: "",
         agree: false,
@@ -21,6 +22,19 @@ export default function Signup() {
         score: 0,
         message: ""
     });
+
+    const roleOptions = [
+        { value: "", label: "Select your role" },
+        { value: "HVAC Engineer", label: "HVAC Engineer" },
+        { value: "MEP Consultant", label: "MEP Consultant" },
+        { value: "Architect", label: "Architect" },
+        { value: "Project Manager", label: "Project Manager" },
+        { value: "CAD Draughtsman", label: "CAD Draughtsman" },
+        { value: "Energy Analyst", label: "Energy Analyst" },
+        { value: "Site Supervisor", label: "Site Supervisor" },
+        { value: "Facility Manager", label: "Facility Manager" },
+        { value: "Other", label: "Other" },
+    ];
 
     const calculatePasswordStrength = (password) => {
         let score = 0;
@@ -45,7 +59,6 @@ export default function Signup() {
         setForm({ ...form, password: newPassword });
         setPasswordStrength(calculatePasswordStrength(newPassword));
 
-        // Clear password-related errors
         if (errors.password) setErrors({ ...errors, password: null });
         if (errors.confirmPassword) setErrors({ ...errors, confirmPassword: null });
     };
@@ -63,7 +76,6 @@ export default function Signup() {
         } else if (!/^[a-zA-Z0-9_]+$/.test(form.username)) {
             err.username = "Username can only contain letters, numbers, and underscores";
         } else {
-            // Check if username already exists
             const storedUsers = JSON.parse(localStorage.getItem("users") || "[]");
             if (storedUsers.some(u => u.username === form.username)) {
                 err.username = "Username already taken";
@@ -85,12 +97,18 @@ export default function Signup() {
         } else if (!/^[^\s@]+@([^\s@]+\.)+[^\s@]+$/.test(form.email)) {
             err.email = "Invalid email format";
         } else {
-            // Check if email already exists
             const storedUsers = JSON.parse(localStorage.getItem("users") || "[]");
             if (storedUsers.some(u => u.email === form.email)) {
                 err.email = "Email already registered";
             }
         }
+
+
+        // Role validation
+        if (!form.role) {
+            err.role = "Please select your role";
+        }
+        
 
         // Password validation
         if (!form.password) {
@@ -132,37 +150,34 @@ export default function Signup() {
             return;
         }
 
-        // Save user to localStorage (mock database)
         const users = JSON.parse(localStorage.getItem("users") || "[]");
         const newUser = {
             id: Date.now(),
             username: form.username,
             name: form.name,
             email: form.email,
-            password: form.password, // In real app, hash this!
-            createdAt: new Date().toISOString()
+            role: form.role,
+            password: form.password,
+            createdAt: new Date().toISOString(),
+            joinedAt: new Date().toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })
         };
 
         users.push(newUser);
         localStorage.setItem("users", JSON.stringify(users));
 
-        // Clear form
         setForm({
             username: "",
             name: "",
             email: "",
+            role: "",
             password: "",
             confirmPassword: "",
             agree: false,
         });
 
-        // Show success message
         setSuccessMessage("Account created successfully! Redirecting to login page...");
-
-        // Clear any existing errors
         setErrors({});
 
-        // Redirect to login page after 2 seconds
         setTimeout(() => {
             navigate("/login");
         }, 2000);
@@ -183,7 +198,7 @@ export default function Signup() {
                             e.target.src = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='%233B82F6' viewBox='0 0 24 24'%3E%3Cpath d='M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4'/%3E%3C/svg%3E";
                         }}
                     />
-                </div>  
+                </div>
 
                 <h2 className="text-3xl font-bold text-center text-gray-800 mb-2">
                     Create Account
@@ -301,6 +316,50 @@ export default function Signup() {
                                 <span>⚠️</span> {errors.email}
                             </p>
                         )}
+                    </div>
+                    {/* Role Selection - NEW FIELD */}
+                    <div>
+                        <label className="block text-sm font-semibold text-gray-700 mb-2">
+                            Role / Department *
+                        </label>
+                        <div className="relative">
+                            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                <svg className="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                                </svg>
+                            </div>
+                            <select
+                                className={`w-full pl-10 pr-3 py-2.5 border rounded-lg focus:outline-none focus:ring-2 transition-all appearance-none ${errors.role
+                                    ? "border-red-400 focus:ring-red-200"
+                                    : "border-gray-300 focus:ring-blue-200 focus:border-blue-500"
+                                    }`}
+                                value={form.role}
+                                onChange={(e) => {
+                                    setForm({ ...form, role: e.target.value });
+                                    if (errors.role) setErrors({ ...errors, role: null });
+                                    setSuccessMessage("");
+                                }}
+                            >
+                                {roleOptions.map(option => (
+                                    <option key={option.value} value={option.value}>
+                                        {option.label}
+                                    </option>
+                                ))}
+                            </select>
+                            <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+                                <svg className="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                                </svg>
+                            </div>
+                        </div>
+                        {errors.role && (
+                            <p className="text-red-500 text-xs mt-1 flex items-center gap-1">
+                                <span>⚠️</span> {errors.role}
+                            </p>
+                        )}
+                        <p className="text-gray-400 text-xs mt-1">
+                            Select your professional role in the HVAC industry
+                        </p>
                     </div>
 
                     {/* Password */}

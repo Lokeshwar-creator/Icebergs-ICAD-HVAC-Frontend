@@ -7,6 +7,7 @@ import NewProject from "../pages/NewProject";
 import Projects from "../pages/Projects";
 import UploadPage from "../pages/UploadPage";
 import ProjectWorkflow from "../pages/ProjectWorkflow";
+import ForgotPassword from "../pages/ForgotPassword";
 
 
 // simple auth check (later replace with real auth)
@@ -55,6 +56,11 @@ export default function AppRoutes() {
                         isAuthenticated() ? <Profile /> : <Navigate to="/login" />
                     }
                 />
+                <Route
+                    path="/forgot-password"
+                    element={<ForgotPassword />}
+                />
+
 
                 {/* Fallback */}
                 <Route path="*" element={<Navigate to="/login" />} />

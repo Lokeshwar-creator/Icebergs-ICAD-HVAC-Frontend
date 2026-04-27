@@ -5,8 +5,10 @@ import { useNavigate } from "react-router-dom";
 import { User, LogOut } from "lucide-react";
 import LayerConfig from "../components/LayerConfig";
 import RoomDetection from "../components/RoomDetection";
+import DuctLayout from "../components/DuctLayout";
 import TRCFMTable from "../components/TRCFMTable";
 import HeatLoad from "../components/HeatLoad";
+
 
 // Add these functions for export
 const exportToPDF = (currentProject, roomsData) => {
@@ -104,6 +106,7 @@ const STEPS = [
     "Room Detection",
     "Heat Load",
     "TR / CFM",
+    "Duct Layout",
     "Export",
 ];
 
@@ -330,7 +333,7 @@ export default function ProjectWorkflow() {
                                                     <div>
                                                         <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Building Type</label>
                                                         <p className="text-gray-700 mt-1">
-                                                            {currentProject?.buildingType || "Not specified"}
+                                                            {currentProject?.buildingType || "Commercial"}
                                                         </p>
                                                     </div>
                                                 </div>
@@ -457,8 +460,24 @@ export default function ProjectWorkflow() {
                                 </div>
                             )}
 
-                            {/* STEP 5: EXPORT */}
+                            {/* STEP 5: DUCT LAYOUT */}
                             {step === 5 && (
+                                <div>
+                                    <div className="mb-4 flex justify-between items-center">
+                                        <h2 className="text-xl font-semibold">Duct Layout Design</h2>
+                                        <button
+                                            onClick={() => setStep(4)}
+                                            className="text-blue-600 hover:text-blue-700 text-sm flex items-center gap-1"
+                                        >
+                                            ← Back to TR / CFM
+                                        </button>
+                                    </div>
+                                    <DuctLayout onNext={() => updateProjectStep(6)} />
+                                </div>
+                            )}
+
+                            {/* STEP 6: EXPORT */}
+                            {step === 6 && (
                                 <div className="text-center">
                                     <h2 className="font-semibold text-xl mb-4">
                                         Export Report

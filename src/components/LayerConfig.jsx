@@ -110,8 +110,6 @@ export default function LayerConfig({ onNext }) {
     return (
         <div>
 
-
-
             {/* FILE INFO */}
             <div className="bg-green-50 border border-green-300 text-green-700 p-3 rounded mb-4 text-sm">
                 ✔ House2.dwg loaded — {layers.length} layers detected

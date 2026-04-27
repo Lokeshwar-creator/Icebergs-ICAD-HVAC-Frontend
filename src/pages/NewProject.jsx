@@ -10,6 +10,7 @@ export default function NewProject() {
     const [uploadedFile, setUploadedFile] = useState(null);
     const [isUploading, setIsUploading] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [isFetchingTemp, setIsFetchingTemp] = useState(false);
 
     const [form, setForm] = useState({
         name: "",
@@ -18,25 +19,112 @@ export default function NewProject() {
         coords: null,
         summer: "",
         winter: "",
+        monsoon: "",
         zone: "",
         dwgFile: null,
     });
 
-    // Auto temperature fetch
+    // Fetch temperature data from Open-Meteo API
     const fetchTemperature = async (lat, lng) => {
+        if (!lat || !lng) {
+            console.error("Invalid coordinates:", { lat, lng });
+            return;
+        }
+
+        setIsFetchingTemp(true);
+        setError("");
+
         try {
-            const res = await fetch(
-                `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&daily=temperature_2m_max,temperature_2m_min&timezone=auto`
-            );
-            const data = await res.json();
+            // Fetch Summer data (June-August)
+            const summerUrl = `https://archive-api.open-meteo.com/v1/archive?latitude=${lat}&longitude=${lng}&start_date=2023-06-01&end_date=2023-08-31&daily=temperature_2m_max&timezone=auto`;
+            const summerResponse = await fetch(summerUrl);
+
+            if (!summerResponse.ok) {
+                throw new Error(`Weather API error: ${summerResponse.status}`);
+            }
+
+            const summerData = await summerResponse.json();
+            console.log("Summer data received:", summerData);
+
+            // Fetch Winter data (December-February)
+            const winterUrl = `https://archive-api.open-meteo.com/v1/archive?latitude=${lat}&longitude=${lng}&start_date=2023-12-01&end_date=2024-02-28&daily=temperature_2m_min&timezone=auto`;
+            const winterResponse = await fetch(winterUrl);
+            const winterData = await winterResponse.json();
+
+            // Fetch Monsoon data (June-September)
+            const monsoonUrl = `https://archive-api.open-meteo.com/v1/archive?latitude=${lat}&longitude=${lng}&start_date=2023-06-01&end_date=2023-09-30&daily=temperature_2m_max,temperature_2m_min&timezone=auto`;
+            const monsoonResponse = await fetch(monsoonUrl);
+            const monsoonData = await monsoonResponse.json();
+
+            let summerTemp = 28;
+            let winterTemp = 20;
+            let monsoonTemp = 24;
+
+            // Process Summer data
+            if (summerData.daily && summerData.daily.temperature_2m_max && summerData.daily.temperature_2m_max.length > 0) {
+                const summerMax = summerData.daily.temperature_2m_max;
+                summerTemp = Math.round(summerMax.reduce((a, b) => a + b, 0) / summerMax.length);
+            }
+
+            // Process Winter data
+            if (winterData.daily && winterData.daily.temperature_2m_min && winterData.daily.temperature_2m_min.length > 0) {
+                const winterMin = winterData.daily.temperature_2m_min;
+                winterTemp = Math.round(winterMin.reduce((a, b) => a + b, 0) / winterMin.length);
+            }
+
+            // Process Monsoon data (average of max and min during monsoon season)
+            if (monsoonData.daily && monsoonData.daily.temperature_2m_max && monsoonData.daily.temperature_2m_max.length > 0) {
+                const monsoonMax = monsoonData.daily.temperature_2m_max;
+                const monsoonMin = monsoonData.daily.temperature_2m_min;
+                const monsoonAvg = monsoonMax.map((max, i) => (max + monsoonMin[i]) / 2);
+                monsoonTemp = Math.round(monsoonAvg.reduce((a, b) => a + b, 0) / monsoonAvg.length);
+            }
 
             setForm((prev) => ({
                 ...prev,
-                summer: data.daily.temperature_2m_max[0],
-                winter: data.daily.temperature_2m_min[0],
+                summer: summerTemp,
+                winter: winterTemp,
+                monsoon: monsoonTemp,
             }));
+
+            setError("");
+
         } catch (err) {
-            console.error(err);
+            console.error("Temperature fetch error:", err);
+            setError(`Could not fetch weather data: ${err.message}. Using fallback values.`);
+
+            // Fallback to latitude-based estimation if API fails
+            const absLat = Math.abs(lat);
+            let summerFallback = 32;
+            let winterFallback = 22;
+            let monsoonFallback = 26;
+
+            if (absLat > 40) {
+                summerFallback = 22;
+                winterFallback = 0;
+                monsoonFallback = 12;
+            } else if (absLat > 25) {
+                summerFallback = 30;
+                winterFallback = 10;
+                monsoonFallback = 20;
+            } else if (absLat > 10) {
+                summerFallback = 34;
+                winterFallback = 18;
+                monsoonFallback = 26;
+            } else {
+                summerFallback = 32;
+                winterFallback = 24;
+                monsoonFallback = 28;
+            }
+
+            setForm((prev) => ({
+                ...prev,
+                summer: summerFallback,
+                winter: winterFallback,
+                monsoon: monsoonFallback,
+            }));
+        } finally {
+            setIsFetchingTemp(false);
         }
     };
 
@@ -46,7 +134,6 @@ export default function NewProject() {
 
         if (!file) return;
 
-        // Check file type
         const validExtensions = ['.dwg', '.dxf'];
         const fileExtension = '.' + file.name.split('.').pop().toLowerCase();
 
@@ -55,7 +142,6 @@ export default function NewProject() {
             return;
         }
 
-        // Check file size (max 50MB)
         if (file.size > 50 * 1024 * 1024) {
             setError("File size must be less than 50MB");
             return;
@@ -63,7 +149,6 @@ export default function NewProject() {
 
         setIsUploading(true);
 
-        // Simulate upload process (replace with actual API call)
         setTimeout(() => {
             setUploadedFile(file);
             setForm(prev => ({ ...prev, dwgFile: file }));
@@ -96,60 +181,59 @@ export default function NewProject() {
     };
 
     const handleSubmit = async () => {
-    if (!validate()) return;
+        if (!validate()) return;
 
-    setIsSubmitting(true);
-    setError("");
-
-    try {
-        const user = JSON.parse(localStorage.getItem("user"));
-        if (!user?.email) {
-            setError("User session not found. Please log in again.");
-            setIsSubmitting(false);
-            return;
-        }
-
-        const key = `projects_${user.email}`;
-        const projects = JSON.parse(localStorage.getItem(key)) || [];
-        const projectId = Date.now();
-
-        const newProject = {
-            name: form.name,
-            description: form.description,
-            location: form.location,
-            coords: form.coords,
-            summer: form.summer,
-            winter: form.winter,
-            zone: form.zone,
-            id: projectId,
-            email: user.email,
-            step: 0,
-            createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString(),
-            dwgFileName: uploadedFile?.name || null,
-            dwgFileSize: uploadedFile?.size || null,
-            // ❌ REMOVED: dwgFileData — never store file binary in localStorage
-        };
+        setIsSubmitting(true);
+        setError("");
 
         try {
-            projects.push(newProject);
-            localStorage.setItem(key, JSON.stringify(projects));
-        } catch (storageErr) {
-            // QuotaExceededError
-            setError("Storage limit exceeded. Please clear old projects and try again.");
+            const user = JSON.parse(localStorage.getItem("user"));
+            if (!user?.email) {
+                setError("User session not found. Please log in again.");
+                setIsSubmitting(false);
+                return;
+            }
+
+            const key = `projects_${user.email}`;
+            const projects = JSON.parse(localStorage.getItem(key)) || [];
+            const projectId = Date.now();
+
+            const newProject = {
+                name: form.name,
+                description: form.description,
+                location: form.location,
+                coords: form.coords,
+                summer: form.summer,
+                winter: form.winter,
+                monsoon: form.monsoon,
+                zone: form.zone,
+                id: projectId,
+                email: user.email,
+                step: 0,
+                createdAt: new Date().toISOString(),
+                updatedAt: new Date().toISOString(),
+                dwgFileName: uploadedFile?.name || null,
+                dwgFileSize: uploadedFile?.size || null,
+            };
+
+            try {
+                projects.push(newProject);
+                localStorage.setItem(key, JSON.stringify(projects));
+            } catch (storageErr) {
+                setError("Storage limit exceeded. Please clear old projects and try again.");
+                setIsSubmitting(false);
+                return;
+            }
+
+            navigate(`/project/${projectId}`, { replace: true });
+
+        } catch (err) {
+            console.error("Submit error:", err);
+            setError("Something went wrong. Please try again.");
+        } finally {
             setIsSubmitting(false);
-            return;
         }
-
-        navigate(`/project/${projectId}`, { replace: true });
-
-    } catch (err) {
-        console.error("Submit error:", err);
-        setError("Something went wrong. Please try again.");
-    } finally {
-        setIsSubmitting(false);
-    }
-};
+    };
 
     return (
         <MainLayout>
@@ -159,7 +243,6 @@ export default function NewProject() {
                 <div className="bg-white p-6 rounded shadow">
                     <h2 className="font-bold mb-4 text-lg">Project Information</h2>
 
-                    {/* Project Name */}
                     <input
                         placeholder="Project Name *"
                         className="w-full border rounded px-3 py-2 mb-3 focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -171,7 +254,6 @@ export default function NewProject() {
                     />
                     {errors.name && <p className="text-red-500 text-sm mb-2">{errors.name}</p>}
 
-                    {/* Project Description */}
                     <textarea
                         placeholder="Project Description *"
                         rows="3"
@@ -204,7 +286,7 @@ export default function NewProject() {
                     </div>
                     {errors.location && <p className="text-red-500 text-sm mb-2">{errors.location}</p>}
 
-                    {/* DWG Upload Button - Bold & Prominent */}
+                    {/* DWG Upload Button */}
                     <div className="mt-4">
                         <label className="block text-sm font-medium text-gray-700 mb-2">
                             DWG/DXF File Upload *
@@ -234,7 +316,6 @@ export default function NewProject() {
                             </label>
                         </div>
 
-                        {/* Upload Status */}
                         {uploadedFile && (
                             <div className="mt-3 p-2 bg-green-50 border border-green-200 rounded flex items-center gap-2">
                                 <span className="text-green-600">✓</span>
@@ -246,10 +327,6 @@ export default function NewProject() {
 
                         {errors.dwg && (
                             <p className="text-red-500 text-sm mt-2">{errors.dwg}</p>
-                        )}
-
-                        {error && (
-                            <p className="text-red-500 text-sm mt-2">{error}</p>
                         )}
                     </div>
                 </div>
@@ -265,13 +342,21 @@ export default function NewProject() {
                         </label>
                         <input
                             value={form.summer || ""}
-                            placeholder="Auto-fetched from location"
+                            placeholder="Select a location first"
                             className="w-full border rounded px-3 py-2 bg-gray-50"
                             readOnly
                         />
-                        <p className="text-xs text-gray-400 mt-1">
-                            Automatically fetched based on location
-                        </p>
+                        {isFetchingTemp && (
+                            <p className="text-xs text-blue-500 mt-1 flex items-center gap-1">
+                                <span className="inline-block w-3 h-3 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></span>
+                                Fetching climate data...
+                            </p>
+                        )}
+                        {!isFetchingTemp && form.summer && (
+                            <p className="text-xs text-green-600 mt-1">
+                                ✓ Fetched from Open-Meteo API
+                            </p>
+                        )}
                     </div>
 
                     {/* Winter Temperature */}
@@ -281,13 +366,47 @@ export default function NewProject() {
                         </label>
                         <input
                             value={form.winter || ""}
-                            placeholder="Auto-fetched from location"
+                            placeholder="Select a location first"
                             className="w-full border rounded px-3 py-2 bg-gray-50"
                             readOnly
                         />
-                        <p className="text-xs text-gray-400 mt-1">
-                            Automatically fetched based on location
-                        </p>
+                        {isFetchingTemp && (
+                            <p className="text-xs text-blue-500 mt-1 flex items-center gap-1">
+                                <span className="inline-block w-3 h-3 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></span>
+                                Fetching climate data...
+                            </p>
+                        )}
+                        {!isFetchingTemp && form.winter && (
+                            <p className="text-xs text-green-600 mt-1">
+                                ✓ Fetched from Open-Meteo API
+                            </p>
+                        )}
+
+                    </div>
+
+                    {/* Monsoon Temperature */}
+                    <div className="mb-3">
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                            Monsoon Design Temperature (°C)
+                        </label>
+                        <input
+                            value={form.monsoon || ""}
+                            placeholder="Select a location first"
+                            className="w-full border rounded px-3 py-2 bg-gray-50"
+                            readOnly
+                        />
+                        {isFetchingTemp && (
+                            <p className="text-xs text-blue-500 mt-1 flex items-center gap-1">
+                                <span className="inline-block w-3 h-3 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></span>
+                                Fetching climate data...
+                            </p>
+                        )}
+                        {!isFetchingTemp && form.monsoon && (
+                            <p className="text-xs text-green-600 mt-1">
+                                ✓ Fetched from Open-Meteo API
+                            </p>
+                        )}
+
                     </div>
 
                     {/* ASHRAE Zone */}
@@ -314,15 +433,20 @@ export default function NewProject() {
                         </select>
                     </div>
 
-                    {/* Proceed Button */}
+                    {error && (
+                        <div className="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded">
+                            <p className="text-yellow-700 text-sm">{error}</p>
+                        </div>
+                    )}
+
                     <button
                         onClick={handleSubmit}
-                        disabled={isSubmitting}
+                        disabled={isSubmitting || isFetchingTemp}
                         className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded transition-colors mt-2 disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                         {isSubmitting ? (
                             <div className="flex items-center justify-center gap-2">
-                                <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                                <span className="inline-block w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
                                 Creating Project...
                             </div>
                         ) : (
@@ -334,4 +458,4 @@ export default function NewProject() {
             </div>
         </MainLayout>
     );
-}
+}   

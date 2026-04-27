@@ -3,7 +3,7 @@ import { useNavigate, Link } from "react-router-dom";
 
 export default function Login() {
     const navigate = useNavigate();
-
+    
     const [form, setForm] = useState({
         email: "",
         password: "",
@@ -30,7 +30,6 @@ export default function Login() {
 
         return err;
     };
-
     const handleSubmit = async (e) => {
         e.preventDefault();
 
@@ -39,7 +38,6 @@ export default function Login() {
             setErrors(validationErrors);
             return;
         }
-
         setIsLoading(true);
 
         // Simulate API call delay
@@ -104,7 +102,6 @@ export default function Login() {
                 )}
 
                 <form onSubmit={handleSubmit} className="space-y-5">
-
                     {/* Email */}
                     <div>
                         <label className="block text-sm font-semibold text-gray-700 mb-2">
@@ -187,9 +184,9 @@ export default function Login() {
 
                     {/* Forgot Password Link */}
                     <div className="flex justify-end">
-                        <a href="#" className="text-sm text-blue-600 hover:text-blue-700 hover:underline">
+                        <Link to="/forgot-password" className="text-sm text-blue-600 hover:text-blue-700 hover:underline">
                             Forgot password?
-                        </a>
+                        </Link>
                     </div>
 
                     {/* Submit Button */}

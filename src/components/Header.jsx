@@ -13,7 +13,7 @@ export default function Header() {
 
             {/* Left - Logo */}
             <div className="flex items-center gap-2">
-                <img src="logo.jpg" alt="logo" className="h-10" />
+                <img src="/logo.jpg" alt="logo" className="h-10" />
                 <span className="font-bold text-lg text-gray-700">
                     IcebergTech ICAD HVAC
                 </span>

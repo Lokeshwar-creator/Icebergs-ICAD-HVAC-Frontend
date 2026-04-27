@@ -22,13 +22,15 @@ export default function Projects() {
         "Room",
         "Heat Load",
         "TR/CFM",
+        "Duct Layout",
         "Export"
     ];
 
     // ✅ STATUS FROM STEP
     const getStatus = (step) => {
         if (step === 0) return "open";
-        if (step === 5) return "completed";
+        if (step === 6) return "completed";
+        if (step > 0 && step < 6) return "inprogress";
         return "inprogress";
     };
 

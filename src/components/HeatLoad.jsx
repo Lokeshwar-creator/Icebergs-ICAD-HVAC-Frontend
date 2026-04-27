@@ -15,13 +15,8 @@ export default function HeatLoad({ onNext }) {
 
     return (
         <div className="p-6">
-
-            <h2 className="text-xl font-bold mb-4">Heat Load Analysis</h2>
-
             <div className="bg-white rounded-xl shadow overflow-hidden">
-
                 <table className="w-full text-center text-sm">
-
                     <thead className="bg-gray-100">
                         <tr>
                             <th className="p-3">Room ID</th>
@@ -35,7 +30,6 @@ export default function HeatLoad({ onNext }) {
                             <th>Total Heat (W)</th>
                         </tr>
                     </thead>
-
                     <tbody>
                         {rooms.map((r) => {
                             const wall = calcWall(r.area);
@@ -83,4 +77,4 @@ export default function HeatLoad({ onNext }) {
 
         </div>
     );
-}
+} 
